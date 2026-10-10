@@ -1,0 +1,53 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: lightblue;
+    margin: 0;
+    padding: 30px;
+}
+
+h1 {
+    color: darkblue;
+}
+
+h2 {
+    color: purple;
+}
+
+p {
+    font-size: 18px;
+    color: black;
+}
+.post {
+    background-color: white;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+}
+
+button {
+    background-color: darkblue;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: purple;
+}nav {
+    background-color: darkblue;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+    margin-right: 20px;
+    font-size: 18px;
+}
+
+nav a:hover {
+    color: yellow;
+}

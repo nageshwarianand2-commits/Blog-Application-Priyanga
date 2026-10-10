@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Create Blog</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="login.html">Login</a>
+        <a href="register.html">Register</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="create-blog.html">Create Blog</a>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+
+        <h1>Create New Blog</h1>
+
+        <!-- Blog Form -->
+        <form id="blogForm">
+
+            <label for="title">Blog Title</label><br>
+
+            <input
+                type="text"
+                id="title"
+                placeholder="Enter blog title"
+                required
+            >
+
+            <br><br>
+
+            <label for="content">Blog Content</label><br>
+
+            <textarea
+                id="content"
+                rows="8"
+                placeholder="Write your blog here"
+                required
+            ></textarea>
+
+            <br><br>
+
+            <button type="submit">Publish Blog</button>
+
+        </form>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+
+        document.getElementById("blogForm").addEventListener("submit", function(event) {
+
+            event.preventDefault();
+
+            const title = document.getElementById("title").value;
+            const content = document.getElementById("content").value;
+
+            if (title.trim() === "" || content.trim() === "") {
+                alert("Please fill all fields.");
+                return;
+            }
+
+            alert("Blog published successfully!");
+
+            document.getElementById("blogForm").reset();
+
+        });
+
+    </script>
+
+</body>
+
+</html>
