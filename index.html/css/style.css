@@ -1,53 +1,209 @@
-body {
-    font-family: Arial, sans-serif;
-    background-color: lightblue;
-    margin: 0;
-    padding: 30px;
+
+/* ================= GLOBAL STYLES ================= */
+
+* {
+    box-sizing: border-box;
 }
 
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f7fc;
+    color: #333;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+/* ================= HEADINGS ================= */
+
 h1 {
-    color: darkblue;
+    color: #173b70;
+    font-size: 32px;
+    margin-bottom: 15px;
 }
 
 h2 {
-    color: purple;
+    color: #563b8f;
+    font-size: 25px;
 }
 
-p {
-    font-size: 18px;
-    color: black;
-}
-.post {
-    background-color: white;
-    padding: 20px;
-    margin-top: 20px;
-    border-radius: 10px;
+h3 {
+    color: #243b64;
 }
 
-button {
-    background-color: darkblue;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
+/* ================= NAVIGATION ================= */
 
-button:hover {
-    background-color: purple;
-}nav {
-    background-color: darkblue;
-    padding: 15px;
-    margin-bottom: 20px;
+nav {
+    background: #173b70;
+    padding: 16px 22px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
 }
 
 nav a {
     color: white;
     text-decoration: none;
-    margin-right: 20px;
-    font-size: 18px;
+    font-size: 16px;
+    font-weight: bold;
 }
 
 nav a:hover {
-    color: yellow;
+    color: #ffd166;
+}
+
+/* ================= CONTAINERS ================= */
+
+.container {
+    max-width: 1000px;
+    width: 100%;
+    margin: 20px auto;
+    padding: 25px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ================= BLOG POSTS ================= */
+
+.post {
+    background: white;
+    padding: 22px;
+    margin-top: 20px;
+    border-radius: 10px;
+    border: 1px solid #e1e7f0;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+    overflow-wrap: anywhere;
+}
+
+.post h2 {
+    margin-top: 0;
+}
+
+.post p {
+    font-size: 16px;
+    color: #444;
+}
+
+/* ================= BUTTONS ================= */
+
+button {
+    background: #2456a6;
+    color: white;
+    padding: 11px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: bold;
+    margin: 5px 3px;
+    transition: background 0.2s ease;
+}
+
+button:hover {
+    background: #563b8f;
+}
+
+/* ================= FORMS ================= */
+
+input,
+textarea,
+select {
+    width: 100%;
+    max-width: 500px;
+    padding: 12px;
+    margin: 8px 0 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+}
+
+textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: #2456a6;
+    box-shadow: 0 0 4px rgba(36, 86, 166, 0.3);
+}
+
+/* ================= LINKS ================= */
+
+a {
+    color: #2456a6;
+}
+
+a:hover {
+    color: #563b8f;
+}
+
+/* ================= RESPONSIVE DESIGN ================= */
+
+@media (max-width: 768px) {
+    body {
+        padding: 12px;
+    }
+
+    h1 {
+        font-size: 26px;
+    }
+
+    h2 {
+        font-size: 21px;
+    }
+
+    nav {
+        padding: 14px;
+        gap: 12px;
+    }
+
+    nav a {
+        font-size: 14px;
+    }
+
+    .container {
+        padding: 16px;
+        margin: 12px auto;
+    }
+
+    .post {
+        padding: 16px;
+    }
+
+    button {
+        padding: 10px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 23px;
+    }
+
+    nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    input,
+    textarea,
+    select {
+        max-width: 100%;
+    }
+
+    button {
+        max-width: 100%;
+    }
 }
