@@ -1,66 +1,135 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - My Blog</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<nav>
-    <a href="index.html">Home</a>
-    <a href="login.html">Login</a>
-    <a href="register.html">Register</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="create-blog.html">Create Blog</a>
-</nav>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="login.html">Login</a>
+        <a href="register.html">Register</a>
+    </nav>
 
-<div class="container">
+    <div class="container">
+        <h1>Register</h1>
 
-    <h1>Register</h1>
+        <form id="registerForm">
 
-    <form onsubmit="registerUser(event)">
+            <label for="name">Name</label><br>
+            <input
+                type="text"
+                id="name"
+                placeholder="Enter your name"
+                required
+            >
 
-        <label>Full Name</label><br>
-        <input type="text" id="name" placeholder="Enter your name" required>
-        <br><br>
+            <br><br>
 
-        <label>Email</label><br>
-        <input type="email" id="email" placeholder="Enter your email" required>
-        <br><br>
+            <label for="email">Email</label><br>
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter your email"
+                required
+            >
 
-        <label>Password</label><br>
-        <input type="password" id="password" placeholder="Enter password" required>
-        <br><br>
+            <br><br>
 
-        <label>Confirm Password</label><br>
-        <input type="password" id="confirmPassword" placeholder="Confirm password" required>
-        <br><br>
+            <label for="password">Password</label><br>
+            <input
+                type="password"
+                id="password"
+                placeholder="At least 6 characters"
+                minlength="6"
+                required
+            >
 
-        <button type="submit">Register</button>
+            <br><br>
 
-    </form>
+            <label for="confirmPassword">Confirm Password</label><br>
+            <input
+                type="password"
+                id="confirmPassword"
+                placeholder="Confirm your password"
+                minlength="6"
+                required
+            >
 
-</div>
+            <br><br>
 
-<script>
-function registerUser(event) {
+            <button type="submit">Register</button>
 
-    event.preventDefault();
+        </form>
 
-    let password = document.getElementById("password").value;
-    let confirmPassword = document.getElementById("confirmPassword").value;
+        <p id="message" role="alert"></p>
 
-    if (password !== confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-    }
+        <p>
+            Already have an account?
+            <a href="login.html">Login here</a>
+        </p>
+    </div>
 
-    alert("Registration successful!");
+    <script>
+        const registerForm = document.getElementById("registerForm");
+        const message = document.getElementById("message");
 
-    window.location.href = "login.html";
-}
-</script>
+        registerForm.addEventListener("submit", async function (event) {
+
+            event.preventDefault();
+            message.textContent = "";
+
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const confirmPassword =
+                document.getElementById("confirmPassword").value;
+
+            if (password !== confirmPassword) {
+                message.textContent = "Passwords do not match.";
+                return;
+            }
+
+            try {
+
+                const response = await fetch("/register", {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    message.textContent =
+                        data.message || "Registration failed";
+                    return;
+                }
+
+                alert("Registration successful! Please login.");
+
+                window.location.href = "login.html";
+
+            } catch (error) {
+
+                message.textContent =
+                    "Server connection failed. Please try again.";
+
+                console.error(error);
+            }
+        });
+    </script>
 
 </body>
 </html>

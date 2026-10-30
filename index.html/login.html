@@ -1,53 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - My Blog</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
 
-<nav>
-    <a href="index.html">Home</a>
-    <a href="login.html">Login</a>
-    <a href="register.html">Register</a>
-    <a href="dashboard.html">Dashboard</a>
-    <a href="create-blog.html">Create Blog</a>
-</nav>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="login.html">Login</a>
+        <a href="register.html">Register</a>
+    </nav>
 
-<div class="container">
+    <div class="container">
+        <h1>Login</h1>
 
-    <h1>Login</h1>
+        <form id="loginForm">
 
-    <form onsubmit="loginUser(event)">
+            <label for="email">Email</label><br>
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter your email"
+                required
+            >
 
-        <label>Email</label><br>
-        <input type="email" id="email"
-               placeholder="Enter your email" required>
+            <br><br>
 
-        <br><br>
+            <label for="password">Password</label><br>
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter your password"
+                required
+            >
 
-        <label>Password</label><br>
-        <input type="password" id="password"
-               placeholder="Enter your password" required>
+            <br><br>
 
-        <br><br>
+            <button type="submit">Login</button>
 
-        <button type="submit">Login</button>
+        </form>
 
-    </form>
+        <p id="message" role="alert"></p>
 
-</div>
+        <p>
+            Don't have an account?
+            <a href="register.html">Register here</a>
+        </p>
+    </div>
 
-<script>
-function loginUser(event) {
-    event.preventDefault();
+    <script>
+        const loginForm = document.getElementById("loginForm");
+        const message = document.getElementById("message");
 
-    alert("Login successful!");
+        loginForm.addEventListener("submit", async function (event) {
 
-    window.location.href = "dashboard.html";
-}
-</script>
+            event.preventDefault();
+            message.textContent = "";
+
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+
+            try {
+
+                const response = await fetch("/login", {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    message.textContent =
+                        data.message || "Login failed";
+                    return;
+                }
+
+                // Store JWT token
+                localStorage.setItem("token", data.token);
+
+                // Store user details
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(data.user)
+                );
+
+                alert("Login successful!");
+
+                window.location.href = "dashboard.html";
+
+            } catch (error) {
+
+                message.textContent =
+                    "Server connection failed. Please try again.";
+
+                console.error(error);
+            }
+        });
+    </script>
 
 </body>
 </html>

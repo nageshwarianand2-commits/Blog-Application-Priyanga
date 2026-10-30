@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,15 +11,16 @@
 
     <nav>
         <a href="index.html">Home</a>
-        <a href="login.html">Login</a>
-        <a href="register.html">Register</a>
         <a href="dashboard.html">Dashboard</a>
         <a href="create-blog.html">Create Blog</a>
+        <button type="button" id="logoutButton">Logout</button>
     </nav>
 
     <div class="container">
 
         <h1>Create New Blog</h1>
+
+        <p id="message"></p>
 
         <form id="blogForm">
 
@@ -35,6 +35,7 @@
             <br><br>
 
             <label for="category">Blog Category</label><br>
+
             <select id="category" required>
                 <option value="">Select Category</option>
                 <option value="Technology">Technology</option>
@@ -47,6 +48,7 @@
             <br><br>
 
             <label for="content">Blog Content</label><br>
+
             <textarea
                 id="content"
                 rows="8"
@@ -63,45 +65,96 @@
     </div>
 
     <script>
-        window.onload = function () {
-            const form = document.getElementById("blogForm");
 
-            form.onsubmit = async function (event) {
-                event.preventDefault();
+        const token = localStorage.getItem("token");
 
-                const title = document.getElementById("title").value;
-                const content = document.getElementById("content").value;
-                const category = document.getElementById("category").value;
+        const form = document.getElementById("blogForm");
+        const message = document.getElementById("message");
 
-                try {
-                    const response = await fetch("/blogs", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            title,
-                            content,
-                            category
-                        })
-                    });
+        // Check login
+        if (!token) {
+            window.location.replace("login.html");
+        }
 
-                    const data = await response.json();
+        // Logout
+        function logout() {
 
-                    if (!response.ok) {
-                        alert(data.message || "Blog publish failed");
-                        return;
-                    }
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
 
-                    alert("Blog published successfully!");
-                    form.reset();
+            window.location.replace("login.html");
+        }
 
-                } catch (error) {
-                    alert("Server connection failed!");
-                    console.error(error);
+        document.getElementById("logoutButton")
+            .addEventListener("click", logout);
+
+        // Publish blog
+        form.addEventListener("submit", async function (event) {
+
+            event.preventDefault();
+
+            message.textContent = "";
+
+            const title =
+                document.getElementById("title").value.trim();
+
+            const content =
+                document.getElementById("content").value.trim();
+
+            const category =
+                document.getElementById("category").value;
+
+            try {
+
+                const response = await fetch("/blogs", {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+
+                    body: JSON.stringify({
+                        title,
+                        content,
+                        category
+                    })
+
+                });
+
+                const data = await response.json();
+
+                if (response.status === 401) {
+                    logout();
+                    return;
                 }
-            };
-        };
+
+                if (!response.ok) {
+
+                    message.textContent =
+                        data.message || "Blog publish failed";
+
+                    return;
+                }
+
+                alert("Blog published successfully!");
+
+                form.reset();
+
+                window.location.href = "dashboard.html";
+
+            } catch (error) {
+
+                message.textContent =
+                    "Server connection failed!";
+
+                console.error(error);
+
+            }
+
+        });
+
     </script>
 
 </body>

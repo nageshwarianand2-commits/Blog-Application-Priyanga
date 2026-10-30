@@ -1,43 +1,19 @@
 require("dotenv").config({
-    path: require("path").join(__dirname, ".env"),
+    path: require("path").join(__dirname, ".env")
 });
 
 const express = require("express");
 const mongoose = require("mongoose");
-const path = require("path");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-const PORT = 3000;
-
-// ================= MIDDLEWARE =================
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
 
-// ================= USER SCHEMA =================
-
-const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true,
-        lowercase: true
-    },
-    password: {
-        type: String,
-        required: true
-    }
-});
-
-const User = mongoose.model("User", userSchema);
-
-// ================= BLOG SCHEMA =================
+// ---------------- CATEGORIES ----------------
 
 const categories = [
     "Technology",
@@ -46,6 +22,31 @@ const categories = [
     "Lifestyle",
     "Travel"
 ];
+
+// ---------------- USER SCHEMA ----------------
+
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        trim: true
+    },
+    password: {
+        type: String,
+        required: true
+    }
+}, { timestamps: true });
+
+const User = mongoose.model("User", userSchema);
+
+// ---------------- BLOG SCHEMA ----------------
 
 const blogSchema = new mongoose.Schema({
     title: {
@@ -65,6 +66,11 @@ const blogSchema = new mongoose.Schema({
         type: String,
         default: "Anonymous"
     },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -73,15 +79,61 @@ const blogSchema = new mongoose.Schema({
 
 const Blog = mongoose.model("Blog", blogSchema);
 
-// ================= REGISTER =================
+// ---------------- JWT AUTHENTICATION ----------------
+
+async function verifyToken(req, res, next) {
+
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+            message: "Please login first"
+        });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+        const user = await User.findById(decoded.userId)
+            .select("_id name email");
+
+        if (!user) {
+            return res.status(401).json({
+                message: "User not found. Please login again."
+            });
+        }
+
+        req.user = user;
+        next();
+
+    } catch (error) {
+        return res.status(401).json({
+            message: "Invalid or expired token"
+        });
+    }
+}
+
+// ---------------- REGISTER ----------------
 
 app.post("/register", async (req, res) => {
+
     try {
         const { name, email, password } = req.body;
 
         if (!name || !email || !password) {
             return res.status(400).json({
-                message: "Name, email and password are required"
+                message: "All fields are required"
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                message: "Password must contain at least 6 characters"
             });
         }
 
@@ -123,9 +175,10 @@ app.post("/register", async (req, res) => {
     }
 });
 
-// ================= LOGIN =================
+// ---------------- LOGIN ----------------
 
 app.post("/login", async (req, res) => {
+
     try {
         const { email, password } = req.body;
 
@@ -145,8 +198,12 @@ app.post("/login", async (req, res) => {
             });
         }
 
-        let isMatch = await bcrypt.compare(password, user.password);
+        let isMatch = await bcrypt.compare(
+            password,
+            user.password
+        );
 
+        // Support old accounts with plain-text passwords once.
         if (!isMatch && user.password === password) {
             user.password = await bcrypt.hash(password, 10);
             await user.save();
@@ -159,8 +216,15 @@ app.post("/login", async (req, res) => {
             });
         }
 
+        const token = jwt.sign(
+            { userId: user._id.toString() },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
         return res.json({
             message: "Login successful",
+            token,
             user: {
                 id: user._id,
                 name: user.name,
@@ -177,16 +241,30 @@ app.post("/login", async (req, res) => {
     }
 });
 
-// ================= CREATE BLOG =================
+// ---------------- USER PROFILE ----------------
 
-app.post("/blogs", async (req, res) => {
+app.get("/profile", verifyToken, (req, res) => {
+
+    res.json({
+        user: {
+            id: req.user._id,
+            name: req.user.name,
+            email: req.user.email
+        }
+    });
+});
+
+// ---------------- CREATE BLOG ----------------
+
+app.post("/blogs", verifyToken, async (req, res) => {
+
     try {
-        const { title, content, category, author } = req.body;
+        const { title, content, category } = req.body;
 
         if (
             typeof title !== "string" ||
-            typeof content !== "string" ||
             !title.trim() ||
+            typeof content !== "string" ||
             !content.trim()
         ) {
             return res.status(400).json({
@@ -206,7 +284,8 @@ app.post("/blogs", async (req, res) => {
             title: title.trim(),
             content: content.trim(),
             category: selectedCategory,
-            author: author || "Anonymous"
+            author: req.user.name,
+            userId: req.user._id
         });
 
         return res.status(201).json({
@@ -223,18 +302,36 @@ app.post("/blogs", async (req, res) => {
     }
 });
 
-// ================= GET ALL BLOGS / SEARCH / FILTER =================
+// ---------------- GET MY BLOGS / SEARCH / FILTER ----------------
 
-app.get("/blogs", async (req, res) => {
+app.get("/blogs", verifyToken, async (req, res) => {
+
     try {
         const { search, category } = req.query;
 
-        const filter = {};
+        const filter = {
+            userId: req.user._id
+        };
 
-        if (search) {
+        if (search && search.trim()) {
+            const safeSearch = search.trim().replace(
+                /[.*+?^${}()|[\]\\]/g,
+                "\\$&"
+            );
+
             filter.$or = [
-                { title: { $regex: search, $options: "i" } },
-                { content: { $regex: search, $options: "i" } }
+                {
+                    title: {
+                        $regex: safeSearch,
+                        $options: "i"
+                    }
+                },
+                {
+                    content: {
+                        $regex: safeSearch,
+                        $options: "i"
+                    }
+                }
             ];
         }
 
@@ -263,9 +360,10 @@ app.get("/blogs", async (req, res) => {
     }
 });
 
-// ================= GET SINGLE BLOG =================
+// ---------------- GET SINGLE BLOG ----------------
 
-app.get("/blogs/:id", async (req, res) => {
+app.get("/blogs/:id", verifyToken, async (req, res) => {
+
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
@@ -273,7 +371,10 @@ app.get("/blogs/:id", async (req, res) => {
             });
         }
 
-        const blog = await Blog.findById(req.params.id);
+        const blog = await Blog.findOne({
+            _id: req.params.id,
+            userId: req.user._id
+        });
 
         if (!blog) {
             return res.status(404).json({
@@ -292,22 +393,23 @@ app.get("/blogs/:id", async (req, res) => {
     }
 });
 
-// ================= UPDATE BLOG =================
+// ---------------- UPDATE BLOG ----------------
 
-app.put("/blogs/:id", async (req, res) => {
+app.put("/blogs/:id", verifyToken, async (req, res) => {
+
     try {
-        const { title, content, category, author } = req.body;
-
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
                 message: "Invalid blog ID"
             });
         }
 
+        const { title, content, category } = req.body;
+
         if (
             typeof title !== "string" ||
-            typeof content !== "string" ||
             !title.trim() ||
+            typeof content !== "string" ||
             !content.trim()
         ) {
             return res.status(400).json({
@@ -330,12 +432,11 @@ app.put("/blogs/:id", async (req, res) => {
             updateData.category = category;
         }
 
-        if (typeof author === "string") {
-            updateData.author = author.trim();
-        }
-
-        const updatedBlog = await Blog.findByIdAndUpdate(
-            req.params.id,
+        const updatedBlog = await Blog.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                userId: req.user._id
+            },
             updateData,
             {
                 new: true,
@@ -345,7 +446,7 @@ app.put("/blogs/:id", async (req, res) => {
 
         if (!updatedBlog) {
             return res.status(404).json({
-                message: "Blog not found"
+                message: "Blog not found or you do not own this blog"
             });
         }
 
@@ -363,9 +464,10 @@ app.put("/blogs/:id", async (req, res) => {
     }
 });
 
-// ================= DELETE BLOG =================
+// ---------------- DELETE BLOG ----------------
 
-app.delete("/blogs/:id", async (req, res) => {
+app.delete("/blogs/:id", verifyToken, async (req, res) => {
+
     try {
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
             return res.status(400).json({
@@ -373,13 +475,14 @@ app.delete("/blogs/:id", async (req, res) => {
             });
         }
 
-        const deletedBlog = await Blog.findByIdAndDelete(
-            req.params.id
-        );
+        const deletedBlog = await Blog.findOneAndDelete({
+            _id: req.params.id,
+            userId: req.user._id
+        });
 
         if (!deletedBlog) {
             return res.status(404).json({
-                message: "Blog not found"
+                message: "Blog not found or you do not own this blog"
             });
         }
 
@@ -396,18 +499,26 @@ app.delete("/blogs/:id", async (req, res) => {
     }
 });
 
-// ================= START SERVER =================
+// ---------------- STATIC FILES ----------------
+
+app.use(express.static(__dirname));
+
+// ---------------- START SERVER ----------------
 
 async function startServer() {
-    const uri = process.env.MONGODB_URI;
 
-    if (!uri) {
-        console.error("MONGODB_URI missing. Check the .env file.");
+    if (!process.env.MONGODB_URI) {
+        console.error("MONGODB_URI missing. Check your .env file.");
+        process.exit(1);
+    }
+
+    if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+        console.error("JWT_SECRET must contain at least 32 characters in .env.");
         process.exit(1);
     }
 
     try {
-        await mongoose.connect(uri, {
+        await mongoose.connect(process.env.MONGODB_URI, {
             family: 4,
             dbName: "test"
         });
