@@ -59,27 +59,38 @@
 
     <!-- JavaScript -->
     <script>
+window.onload = function () {
+    const form = document.getElementById("blogForm");
 
-        document.getElementById("blogForm").addEventListener("submit", function(event) {
+    form.onsubmit = async function (event) {
+        event.preventDefault();
 
-            event.preventDefault();
+        alert("Button working!");
 
-            const title = document.getElementById("title").value;
-            const content = document.getElementById("content").value;
+        const title = document.getElementById("title").value;
+        const content = document.getElementById("content").value;
 
-            if (title.trim() === "" || content.trim() === "") {
-                alert("Please fill all fields.");
+        try {
+            const response = await fetch("http://localhost:3000/blogs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ title, content })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.message || "Blog publish failed");
                 return;
             }
 
             alert("Blog published successfully!");
-
-            document.getElementById("blogForm").reset();
-
-        });
-
-    </script>
-
-</body>
-
-</html>
+        } catch (error) {
+            alert("Server connection failed!");
+            console.error(error);
+        }
+    };
+};
+</script>

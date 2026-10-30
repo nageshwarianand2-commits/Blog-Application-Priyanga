@@ -28,21 +28,56 @@
 
         <p>Manage your blog posts and create new content.</p>
 
-        <div class="blog-card">
-            <h2>My First Blog</h2>
+       <div id="blogList">
+    <p>Loading blogs...</p>
+</div>
 
-            <p>
-                This is my first blog post.
-                Welcome to my blog application.
-            </p>
+<a href="create-blog.html">
+    <button>Create New Blog</button>
+</a>
 
-            <a href="create-blog.html">
-                <button>Create New Blog</button>
-            </a>
-        </div>
+<script>
+async function loadBlogs() {
+    const blogList = document.getElementById("blogList");
 
-    </div>
+    try {
+        const response = await fetch("/blogs");
+        const blogs = await response.json();
 
-</body>
+        blogList.innerHTML = "";
 
-</html>
+        if (!response.ok) {
+            blogList.innerHTML = "<p>Unable to load blogs.</p>";
+            return;
+        }
+
+        if (blogs.length === 0) {
+            blogList.innerHTML = "<p>No blogs found.</p>";
+            return;
+        }
+
+        blogs.forEach(blog => {
+            const card = document.createElement("div");
+            card.className = "blog-card";
+
+            const title = document.createElement("h2");
+            const link = document.createElement("a");
+            link.href = "blog-details.html?id=" + blog._id;
+            link.textContent = blog.title;
+            title.appendChild(link);
+
+            const content = document.createElement("p");
+            content.textContent = blog.content;
+
+            card.appendChild(title);
+            card.appendChild(content);
+            blogList.appendChild(card);
+        });
+
+    } catch (error) {
+        blogList.innerHTML = "<p>Server connection failed.</p>";
+    }
+}
+
+loadBlogs();
+</script>
