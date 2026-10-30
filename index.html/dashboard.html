@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Dashboard</title>
-
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -23,61 +21,231 @@
     <div class="container">
 
         <h1>Dashboard</h1>
-
         <h2>Welcome to Your Dashboard</h2>
-
         <p>Manage your blog posts and create new content.</p>
 
-       <div id="blogList">
-    <p>Loading blogs...</p>
-</div>
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search blogs by title or content..."
+            style="padding: 10px; width: 90%; margin-bottom: 15px;"
+            oninput="displayBlogs()"
+        >
 
-<a href="create-blog.html">
-    <button>Create New Blog</button>
-</a>
+        <select
+            id="categoryFilter"
+            onchange="displayBlogs()"
+            style="padding: 10px; width: 90%; margin-bottom: 20px;"
+        >
+            <option value="">All Categories</option>
+            <option value="Technology">Technology</option>
+            <option value="Education">Education</option>
+            <option value="Programming">Programming</option>
+            <option value="Lifestyle">Lifestyle</option>
+            <option value="Travel">Travel</option>
+        </select>
 
-<script>
-async function loadBlogs() {
-    const blogList = document.getElementById("blogList");
+        <div id="blogList">
+            <p>Loading blogs...</p>
+        </div>
 
-    try {
-        const response = await fetch("/blogs");
-        const blogs = await response.json();
+        <a href="create-blog.html">
+            <button>Create New Blog</button>
+        </a>
 
-        blogList.innerHTML = "";
+    </div>
 
-        if (!response.ok) {
-            blogList.innerHTML = "<p>Unable to load blogs.</p>";
-            return;
+    <script>
+
+        let allBlogs = [];
+
+        async function loadBlogs() {
+            const blogList = document.getElementById("blogList");
+
+            try {
+                const response = await fetch("/blogs");
+                const blogs = await response.json();
+
+                if (!response.ok) {
+                    blogList.innerHTML = "<p>Unable to load blogs.</p>";
+                    return;
+                }
+
+                allBlogs = blogs;
+                displayBlogs();
+
+            } catch (error) {
+                blogList.innerHTML = "<p>Server connection failed.</p>";
+            }
         }
 
-        if (blogs.length === 0) {
-            blogList.innerHTML = "<p>No blogs found.</p>";
-            return;
+        // SEARCH AND CATEGORY FILTER
+        function displayBlogs() {
+
+            const blogList = document.getElementById("blogList");
+
+            const searchText = document
+                .getElementById("searchInput")
+                .value.trim().toLowerCase();
+
+            const selectedCategory = document
+                .getElementById("categoryFilter")
+                .value;
+
+            blogList.innerHTML = "";
+
+            const filteredBlogs = allBlogs.filter(blog => {
+
+                const matchesSearch =
+                    (blog.title || "").toLowerCase().includes(searchText) ||
+                    (blog.content || "").toLowerCase().includes(searchText);
+
+                const matchesCategory =
+                    !selectedCategory ||
+                    blog.category === selectedCategory;
+
+                return matchesSearch && matchesCategory;
+            });
+
+            if (filteredBlogs.length === 0) {
+                blogList.innerHTML = "<p>No matching blogs found.</p>";
+                return;
+            }
+
+            filteredBlogs.forEach(blog => {
+
+                const card = document.createElement("div");
+                card.className = "blog-card";
+
+                const title = document.createElement("h2");
+                const link = document.createElement("a");
+
+                link.href = "blog-details.html?id=" + blog._id;
+                link.textContent = blog.title;
+
+                title.appendChild(link);
+
+                const category = document.createElement("p");
+                category.textContent =
+                    "Category: " + (blog.category || "Uncategorized");
+
+                const content = document.createElement("p");
+                content.textContent = blog.content;
+
+                // EDIT BUTTON
+                const editButton = document.createElement("button");
+                editButton.textContent = "Edit";
+
+                editButton.onclick = async function () {
+
+                    const newTitle = prompt(
+                        "Enter new blog title:", blog.title
+                    );
+
+                    if (newTitle === null) return;
+
+                    const newContent = prompt(
+                        "Enter new blog content:", blog.content
+                    );
+
+                    if (newContent === null) return;
+
+                    const newCategory = prompt(
+                        "Enter category (Technology, Education, Programming, Lifestyle, Travel):",
+                        blog.category || "Technology"
+                    );
+
+                    if (newCategory === null) return;
+
+                    const allowedCategories = [
+                        "Technology",
+                        "Education",
+                        "Programming",
+                        "Lifestyle",
+                        "Travel"
+                    ];
+
+                    if (
+                        !newTitle.trim() ||
+                        !newContent.trim() ||
+                        !allowedCategories.includes(newCategory.trim())
+                    ) {
+                        alert("Enter valid title, content and category.");
+                        return;
+                    }
+
+                    try {
+                        const result = await fetch("/blogs/" + blog._id, {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                title: newTitle,
+                                content: newContent,
+                                category: newCategory.trim(),
+                                author: blog.author
+                            })
+                        });
+
+                        const data = await result.json();
+
+                        if (result.ok) {
+                            alert("Blog updated successfully!");
+                            await loadBlogs();
+                        } else {
+                            alert(data.message || "Update failed.");
+                        }
+
+                    } catch (error) {
+                        alert("Server connection failed.");
+                    }
+                };
+
+                // DELETE BUTTON
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+
+                deleteButton.onclick = async function () {
+
+                    const confirmDelete = confirm(
+                        "Are you sure you want to delete this blog?"
+                    );
+
+                    if (!confirmDelete) return;
+
+                    try {
+                        const result = await fetch("/blogs/" + blog._id, {
+                            method: "DELETE"
+                        });
+
+                        const data = await result.json();
+
+                        if (result.ok) {
+                            alert("Blog deleted successfully!");
+                            await loadBlogs();
+                        } else {
+                            alert(data.message || "Delete failed.");
+                        }
+
+                    } catch (error) {
+                        alert("Server connection failed.");
+                    }
+                };
+
+                card.appendChild(title);
+                card.appendChild(category);
+                card.appendChild(content);
+                card.appendChild(editButton);
+                card.appendChild(deleteButton);
+
+                blogList.appendChild(card);
+            });
         }
 
-        blogs.forEach(blog => {
-            const card = document.createElement("div");
-            card.className = "blog-card";
+        loadBlogs();
 
-            const title = document.createElement("h2");
-            const link = document.createElement("a");
-            link.href = "blog-details.html?id=" + blog._id;
-            link.textContent = blog.title;
-            title.appendChild(link);
+    </script>
 
-            const content = document.createElement("p");
-            content.textContent = blog.content;
-
-            card.appendChild(title);
-            card.appendChild(content);
-            blogList.appendChild(card);
-        });
-
-    } catch (error) {
-        blogList.innerHTML = "<p>Server connection failed.</p>";
-    }
-}
-
-loadBlogs();
-</script>
+</body>
+</html>

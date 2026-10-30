@@ -4,15 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Create Blog</title>
-
     <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-    <!-- Navigation Bar -->
     <nav>
         <a href="index.html">Home</a>
         <a href="login.html">Login</a>
@@ -21,16 +18,13 @@
         <a href="create-blog.html">Create Blog</a>
     </nav>
 
-    <!-- Main Container -->
     <div class="container">
 
         <h1>Create New Blog</h1>
 
-        <!-- Blog Form -->
         <form id="blogForm">
 
             <label for="title">Blog Title</label><br>
-
             <input
                 type="text"
                 id="title"
@@ -40,8 +34,19 @@
 
             <br><br>
 
-            <label for="content">Blog Content</label><br>
+            <label for="category">Blog Category</label><br>
+            <select id="category" required>
+                <option value="">Select Category</option>
+                <option value="Technology">Technology</option>
+                <option value="Education">Education</option>
+                <option value="Programming">Programming</option>
+                <option value="Lifestyle">Lifestyle</option>
+                <option value="Travel">Travel</option>
+            </select>
 
+            <br><br>
+
+            <label for="content">Blog Content</label><br>
             <textarea
                 id="content"
                 rows="8"
@@ -57,40 +62,47 @@
 
     </div>
 
-    <!-- JavaScript -->
     <script>
-window.onload = function () {
-    const form = document.getElementById("blogForm");
+        window.onload = function () {
+            const form = document.getElementById("blogForm");
 
-    form.onsubmit = async function (event) {
-        event.preventDefault();
+            form.onsubmit = async function (event) {
+                event.preventDefault();
 
-        alert("Button working!");
+                const title = document.getElementById("title").value;
+                const content = document.getElementById("content").value;
+                const category = document.getElementById("category").value;
 
-        const title = document.getElementById("title").value;
-        const content = document.getElementById("content").value;
+                try {
+                    const response = await fetch("/blogs", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            title,
+                            content,
+                            category
+                        })
+                    });
 
-        try {
-            const response = await fetch("http://localhost:3000/blogs", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ title, content })
-            });
+                    const data = await response.json();
 
-            const data = await response.json();
+                    if (!response.ok) {
+                        alert(data.message || "Blog publish failed");
+                        return;
+                    }
 
-            if (!response.ok) {
-                alert(data.message || "Blog publish failed");
-                return;
-            }
+                    alert("Blog published successfully!");
+                    form.reset();
 
-            alert("Blog published successfully!");
-        } catch (error) {
-            alert("Server connection failed!");
-            console.error(error);
-        }
-    };
-};
-</script>
+                } catch (error) {
+                    alert("Server connection failed!");
+                    console.error(error);
+                }
+            };
+        };
+    </script>
+
+</body>
+</html>

@@ -10,7 +10,8 @@ const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 3000;
 
-// Middleware
+// ================= MIDDLEWARE =================
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
@@ -38,6 +39,14 @@ const User = mongoose.model("User", userSchema);
 
 // ================= BLOG SCHEMA =================
 
+const categories = [
+    "Technology",
+    "Education",
+    "Programming",
+    "Lifestyle",
+    "Travel"
+];
+
 const blogSchema = new mongoose.Schema({
     title: {
         type: String,
@@ -46,6 +55,11 @@ const blogSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true
+    },
+    category: {
+        type: String,
+        enum: categories,
+        default: "Technology"
     },
     author: {
         type: String,
@@ -103,12 +117,6 @@ app.post("/register", async (req, res) => {
     } catch (error) {
         console.error("Register error:", error.message);
 
-        if (error.code === 11000) {
-            return res.status(409).json({
-                message: "Email already registered"
-            });
-        }
-
         return res.status(500).json({
             message: "Registration failed"
         });
@@ -137,12 +145,8 @@ app.post("/login", async (req, res) => {
             });
         }
 
-        let isMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
+        let isMatch = await bcrypt.compare(password, user.password);
 
-        // Upgrade an existing plaintext password on successful login
         if (!isMatch && user.password === password) {
             user.password = await bcrypt.hash(password, 10);
             await user.save();
@@ -177,7 +181,7 @@ app.post("/login", async (req, res) => {
 
 app.post("/blogs", async (req, res) => {
     try {
-        const { title, content, author } = req.body;
+        const { title, content, category, author } = req.body;
 
         if (
             typeof title !== "string" ||
@@ -190,9 +194,18 @@ app.post("/blogs", async (req, res) => {
             });
         }
 
+        const selectedCategory = category || "Technology";
+
+        if (!categories.includes(selectedCategory)) {
+            return res.status(400).json({
+                message: "Invalid blog category"
+            });
+        }
+
         const blog = await Blog.create({
             title: title.trim(),
             content: content.trim(),
+            category: selectedCategory,
             author: author || "Anonymous"
         });
 
@@ -210,11 +223,32 @@ app.post("/blogs", async (req, res) => {
     }
 });
 
-// ================= GET ALL BLOGS =================
+// ================= GET ALL BLOGS / SEARCH / FILTER =================
 
 app.get("/blogs", async (req, res) => {
     try {
-        const blogs = await Blog.find().sort({
+        const { search, category } = req.query;
+
+        const filter = {};
+
+        if (search) {
+            filter.$or = [
+                { title: { $regex: search, $options: "i" } },
+                { content: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        if (category) {
+            if (!categories.includes(category)) {
+                return res.status(400).json({
+                    message: "Invalid blog category"
+                });
+            }
+
+            filter.category = category;
+        }
+
+        const blogs = await Blog.find(filter).sort({
             createdAt: -1
         });
 
@@ -254,6 +288,110 @@ app.get("/blogs/:id", async (req, res) => {
 
         return res.status(500).json({
             message: "Could not fetch blog"
+        });
+    }
+});
+
+// ================= UPDATE BLOG =================
+
+app.put("/blogs/:id", async (req, res) => {
+    try {
+        const { title, content, category, author } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: "Invalid blog ID"
+            });
+        }
+
+        if (
+            typeof title !== "string" ||
+            typeof content !== "string" ||
+            !title.trim() ||
+            !content.trim()
+        ) {
+            return res.status(400).json({
+                message: "Title and content are required"
+            });
+        }
+
+        const updateData = {
+            title: title.trim(),
+            content: content.trim()
+        };
+
+        if (category !== undefined) {
+            if (!categories.includes(category)) {
+                return res.status(400).json({
+                    message: "Invalid blog category"
+                });
+            }
+
+            updateData.category = category;
+        }
+
+        if (typeof author === "string") {
+            updateData.author = author.trim();
+        }
+
+        const updatedBlog = await Blog.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!updatedBlog) {
+            return res.status(404).json({
+                message: "Blog not found"
+            });
+        }
+
+        return res.json({
+            message: "Blog updated successfully",
+            blog: updatedBlog
+        });
+
+    } catch (error) {
+        console.error("Update blog error:", error.message);
+
+        return res.status(500).json({
+            message: "Could not update blog"
+        });
+    }
+});
+
+// ================= DELETE BLOG =================
+
+app.delete("/blogs/:id", async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({
+                message: "Invalid blog ID"
+            });
+        }
+
+        const deletedBlog = await Blog.findByIdAndDelete(
+            req.params.id
+        );
+
+        if (!deletedBlog) {
+            return res.status(404).json({
+                message: "Blog not found"
+            });
+        }
+
+        return res.json({
+            message: "Blog deleted successfully"
+        });
+
+    } catch (error) {
+        console.error("Delete blog error:", error.message);
+
+        return res.status(500).json({
+            message: "Could not delete blog"
         });
     }
 });
