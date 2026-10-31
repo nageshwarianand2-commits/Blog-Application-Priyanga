@@ -62,3 +62,10 @@ Passwords are hashed using bcryptjs. JWT tokens are used to authenticate users a
 ## Author
 
 Nageshwari
+## Live Demo
+
+[Visit My Blog Application](https://blog-application-priyanga.onrender.com)
+
+## Deployment
+
+Deployed using Render.
